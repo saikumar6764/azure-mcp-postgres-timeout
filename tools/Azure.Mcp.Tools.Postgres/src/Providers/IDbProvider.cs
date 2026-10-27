@@ -9,6 +9,6 @@ namespace Azure.Mcp.Tools.Postgres.Providers;
 public interface IDbProvider
 {
     Task<IPostgresResource> GetPostgresResource(string connectionString, string authType, CancellationToken cancellationToken);
-    NpgsqlCommand GetCommand(string query, IPostgresResource postgresResource);
+    NpgsqlCommand GetCommand(string query, IPostgresResource postgresResource, int? commandTimeoutSeconds = null);
     Task<DbDataReader> ExecuteReaderAsync(NpgsqlCommand command, CancellationToken cancellationToken);
 }

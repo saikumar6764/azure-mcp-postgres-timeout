@@ -21,6 +21,7 @@ public interface IPostgresService
         string server,
         string database,
         string query,
+        int? commandTimeoutSeconds,
         CancellationToken cancellationToken);
 
     Task<TableListResult> ListTablesAsync(

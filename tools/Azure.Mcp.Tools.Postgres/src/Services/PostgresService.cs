@@ -167,6 +167,7 @@ public class PostgresService(IAzureService azureService, IEntraTokenProvider ent
         string server,
         string database,
         string query,
+        int? commandTimeoutSeconds,
         CancellationToken cancellationToken)
     {
         string host = CreateAndValidateServerHostname(server);
@@ -176,7 +177,7 @@ public class PostgresService(IAzureService azureService, IEntraTokenProvider ent
         var (parameterizedQuery, queryParameters) = ParameterizeStringLiterals(query);
 
         await using IPostgresResource resource = await _dbProvider.GetPostgresResource(connectionString, authType, cancellationToken);
-        await using NpgsqlCommand command = _dbProvider.GetCommand(parameterizedQuery, resource);
+        await using NpgsqlCommand command = _dbProvider.GetCommand(parameterizedQuery, resource, commandTimeoutSeconds);
 
         foreach (var (name, value) in queryParameters)
         {
@@ -413,7 +414,24 @@ public class PostgresService(IAzureService azureService, IEntraTokenProvider ent
             Database = database,
             Username = user,
             Password = password,
-            SslMode = SslMode.Require
+            SslMode = SslMode.Require,
+            // Keep the socket active during long-running queries. While a single command
+            // runs, no application data flows over the TCP connection, so an intermediary
+            // (Azure Load Balancer / NAT gateway, ~4 min idle timeout) can silently drop it,
+            // which Npgsql surfaces as "Exception while reading from stream".
+            //
+            // The application-level keepalive (KeepAlive) only fires while a pooled connection
+            // is IDLE; it does nothing while a command is actively executing. For a single
+            // long-running query the only protection is OS-level TCP keepalive. Enabling
+            // TcpKeepAlive alone uses the OS default idle time (7200s on Linux), which is far
+            // longer than the load balancer's idle timeout, so we set an explicit
+            // TcpKeepAliveTime/Interval (in SECONDS per Npgsql) to actively probe the socket
+            // every 30s while the query runs, keeping the connection alive across the load
+            // balancer / Container Apps SNAT (~4 min idle timeout).
+            KeepAlive = 30,
+            TcpKeepAlive = true,
+            TcpKeepAliveTime = 30,
+            TcpKeepAliveInterval = 10
         };
         return builder.ConnectionString;
     }
