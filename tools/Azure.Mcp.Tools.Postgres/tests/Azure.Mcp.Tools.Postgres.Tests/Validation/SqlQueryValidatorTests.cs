@@ -24,15 +24,7 @@ public class SqlQueryValidatorTests
     [InlineData("SELECT preset FROM config")]
     [InlineData("SELECT * FROM intersections")]
     [InlineData("SELECT * FROM exceptions")]
-    [InlineData("SELECT 'drop table' AS msg FROM users")]
-    [InlineData("SELECT * FROM users WHERE note = 'pg_sleep is bad'")]
-    [InlineData("SELECT 1 UNION SELECT 2")]
-    [InlineData("SELECT * FROM users WHERE id = 1 or 1=1")]
-    [InlineData("INSERT INTO users VALUES (1)")]
-    [InlineData("UPDATE users SET name = 'x'")]
-    [InlineData("DELETE FROM users WHERE id = 1")]
-    [InlineData("DROP TABLE users")]
-    public void ValidateQuery_WithAcceptedQueries_ShouldNotThrow(string query)
+    public void ValidateQuery_WithSafeQueries_ShouldNotThrow(string query)
     {
         SqlQueryValidator.ValidateQuery(query);
     }
@@ -46,6 +38,44 @@ public class SqlQueryValidatorTests
     {
         var exception = Assert.Throws<CommandValidationException>(() => SqlQueryValidator.ValidateQuery(query));
         Assert.Contains("Comments are not allowed", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("SELECT 1 UNION SELECT usename FROM users")]
+    [InlineData("SELECT 1 UNION ALL SELECT 2")]
+    [InlineData("SELECT 1 INTERSECT SELECT 2")]
+    [InlineData("SELECT 1 EXCEPT SELECT 2")]
+    [InlineData("SELECT 1 union select 2")]
+    public void ValidateQuery_WithSetOperations_ShouldThrow(string query)
+    {
+        var exception = Assert.Throws<CommandValidationException>(() => SqlQueryValidator.ValidateQuery(query));
+        Assert.Contains("dangerous keyword", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("SELECT pg_read_file('/etc/passwd')")]
+    [InlineData("SELECT * FROM pg_shadow")]
+    [InlineData("SELECT usename, passwd FROM pg_user")]
+    [InlineData("SELECT rolname, rolsuper, rolcanlogin FROM pg_roles")]
+    [InlineData("SELECT dblink('host=evil.com', 'SELECT 1')")]
+    [InlineData("SELECT pg_sleep(999)")]
+    [InlineData("SELECT * FROM pg_stat_ssl")]
+    [InlineData("SELECT * FROM generate_series(1,1000000000)")]
+    public void ValidateQuery_WithDangerousIdentifiers_ShouldThrow(string query)
+    {
+        var exception = Assert.Throws<CommandValidationException>(() => SqlQueryValidator.ValidateQuery(query));
+        Assert.Contains("is not allowed", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("DROP TABLE users")]
+    [InlineData("DELETE FROM users")]
+    [InlineData("INSERT INTO users VALUES (1)")]
+    [InlineData("UPDATE users SET name = 'x'")]
+    public void ValidateQuery_WithNonSelectStatements_ShouldThrow(string query)
+    {
+        var exception = Assert.Throws<CommandValidationException>(() => SqlQueryValidator.ValidateQuery(query));
+        Assert.Contains("Only single read-only SELECT statements are allowed", exception.Message);
     }
 
     [Theory]
@@ -74,5 +104,14 @@ public class SqlQueryValidatorTests
 
         var exception = Assert.Throws<CommandValidationException>(() => SqlQueryValidator.ValidateQuery(longQuery));
         Assert.Contains("Query length exceeds limit", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("SELECT * FROM users WHERE id = 1 or 1=1")]
+    [InlineData("SELECT * FROM users WHERE id = 1 or '1'='1")]
+    public void ValidateQuery_WithTautologyPatterns_ShouldThrow(string query)
+    {
+        var exception = Assert.Throws<CommandValidationException>(() => SqlQueryValidator.ValidateQuery(query));
+        Assert.Contains("tautology", exception.Message);
     }
 }

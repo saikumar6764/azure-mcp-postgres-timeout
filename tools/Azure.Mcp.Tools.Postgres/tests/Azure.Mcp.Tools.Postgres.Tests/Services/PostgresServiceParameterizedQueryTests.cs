@@ -167,7 +167,7 @@ public class PostgresServiceParameterizedQueryTests
 
         // Act & Assert
         // The method should fail validation before attempting to connect to database
-        var task = _postgresService.ExecuteQueryAsync(authType, user, password, server, database, maliciousQuery, TestContext.Current.CancellationToken);
+        var task = _postgresService.ExecuteQueryAsync(authType, user, password, server, database, maliciousQuery, null, TestContext.Current.CancellationToken);
 
         // We expect this to eventually throw due to validation, not due to database connection
         // The validation should catch dangerous queries before any database interaction
@@ -189,7 +189,7 @@ public class PostgresServiceParameterizedQueryTests
 
         // Act & Assert
         // Valid queries should pass validation and proceed to connection attempt
-        var task = _postgresService.ExecuteQueryAsync(authType, user, password, server, database, validQuery, TestContext.Current.CancellationToken);
+        var task = _postgresService.ExecuteQueryAsync(authType, user, password, server, database, validQuery, null, TestContext.Current.CancellationToken);
         Assert.NotNull(task);
     }
 
@@ -217,7 +217,7 @@ public class PostgresServiceParameterizedQueryTests
 
         // Act & Assert
         // The method should accept complex queries with vector operations and Azure OpenAI functions
-        var task = _postgresService.ExecuteQueryAsync(authType, user, password, server, database, vectorQuery, TestContext.Current.CancellationToken);
+        var task = _postgresService.ExecuteQueryAsync(authType, user, password, server, database, vectorQuery, null, TestContext.Current.CancellationToken);
 
         // Verify the task is created successfully (will fail at connection stage in unit test)
         Assert.NotNull(task);
@@ -241,7 +241,7 @@ public class PostgresServiceParameterizedQueryTests
 
         // Act & Assert
         // Should accept queries with various vector similarity operators
-        var task = _postgresService.ExecuteQueryAsync(authType, user, password, server, database, vectorQuery, TestContext.Current.CancellationToken);
+        var task = _postgresService.ExecuteQueryAsync(authType, user, password, server, database, vectorQuery, null, TestContext.Current.CancellationToken);
         Assert.NotNull(task);
     }
 }

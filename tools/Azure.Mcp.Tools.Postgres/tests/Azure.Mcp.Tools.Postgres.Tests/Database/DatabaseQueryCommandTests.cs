@@ -22,7 +22,7 @@ public class DatabaseQueryCommandTests : CommandUnitTestsBase<DatabaseQueryComma
     {
         var expectedResults = new List<string> { "result1", "result2" };
 
-        Service.ExecuteQueryAsync(AuthTypes.MicrosoftEntra, "user1", null, "server1", "db123", "SELECT * FROM test;", Arg.Any<CancellationToken>())
+        Service.ExecuteQueryAsync(AuthTypes.MicrosoftEntra, "user1", null, "server1", "db123", "SELECT * FROM test;", Arg.Any<int?>(), Arg.Any<CancellationToken>())
             .Returns(expectedResults);
 
         var response = await ExecuteCommandAsync(
@@ -39,7 +39,7 @@ public class DatabaseQueryCommandTests : CommandUnitTestsBase<DatabaseQueryComma
     [Fact]
     public async Task ExecuteAsync_ReturnsEmpty_WhenQueryFails()
     {
-        Service.ExecuteQueryAsync(AuthTypes.MicrosoftEntra, "user1", null, "server1", "db123", "SELECT * FROM test;", Arg.Any<CancellationToken>())
+        Service.ExecuteQueryAsync(AuthTypes.MicrosoftEntra, "user1", null, "server1", "db123", "SELECT * FROM test;", Arg.Any<int?>(), Arg.Any<CancellationToken>())
             .Returns([]);
 
         var response = await ExecuteCommandAsync(
@@ -103,7 +103,7 @@ public class DatabaseQueryCommandTests : CommandUnitTestsBase<DatabaseQueryComma
         Assert.Equal(HttpStatusCode.BadRequest, response.Status);
         Assert.Equal(expectedMessage, response.Message);
         // Service should never be called for invalid queries.
-        await Service.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await Service.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -111,11 +111,8 @@ public class DatabaseQueryCommandTests : CommandUnitTestsBase<DatabaseQueryComma
     [InlineData("UPDATE accounts SET balance=0;")]
     [InlineData("SELECT pg_read_file('/etc/passwd')")]
     [InlineData("SELECT pg_sleep(3600)")]
-    public async Task ExecuteAsync_NonSelectQuery_IsForwardedToService(string query)
+    public async Task ExecuteAsync_NonReadOnlyQuery_IsRejected(string query)
     {
-        Service.ExecuteQueryAsync(AuthTypes.MicrosoftEntra, "user1", null, "server1", "db123", query, Arg.Any<CancellationToken>())
-            .Returns([]);
-
         var response = await ExecuteCommandAsync(
             $"--{PostgresOptionDefinitions.AuthTypeText}", AuthTypes.MicrosoftEntra,
             "--user", "user1",
@@ -124,8 +121,8 @@ public class DatabaseQueryCommandTests : CommandUnitTestsBase<DatabaseQueryComma
             "--query", query);
 
         Assert.NotNull(response);
-        Assert.Equal(HttpStatusCode.OK, response.Status);
-        await Service.Received(1).ExecuteQueryAsync(AuthTypes.MicrosoftEntra, "user1", null, "server1", "db123", query, Arg.Any<CancellationToken>());
+        Assert.Equal(HttpStatusCode.BadRequest, response.Status);
+        await Service.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -141,7 +138,7 @@ public class DatabaseQueryCommandTests : CommandUnitTestsBase<DatabaseQueryComma
 
         Assert.NotNull(response);
         Assert.Equal(HttpStatusCode.BadRequest, response.Status);
-        await Service.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await Service.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<CancellationToken>());
     }
 }
 

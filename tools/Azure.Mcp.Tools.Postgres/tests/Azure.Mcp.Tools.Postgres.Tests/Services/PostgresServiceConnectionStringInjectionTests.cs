@@ -69,6 +69,7 @@ public class PostgresServiceConnectionStringInjectionTests
         await _postgresService.ExecuteQueryAsync(
             AuthTypes.MicrosoftEntra, "test-user", null,
             "legitimate-server", maliciousDatabase, "SELECT 1",
+            null,
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -122,6 +123,7 @@ public class PostgresServiceConnectionStringInjectionTests
         await _postgresService.ExecuteQueryAsync(
             AuthTypes.MicrosoftEntra, "test-user", null,
             legitimateServer, maliciousDatabase, "SELECT 1",
+            null,
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -143,6 +145,7 @@ public class PostgresServiceConnectionStringInjectionTests
         await _postgresService.ExecuteQueryAsync(
             AuthTypes.MicrosoftEntra, "test-user", null,
             "safe-server", maliciousDatabase, "SELECT 1",
+            null,
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -161,6 +164,7 @@ public class PostgresServiceConnectionStringInjectionTests
         await _postgresService.ExecuteQueryAsync(
             AuthTypes.MicrosoftEntra, "test-user", null,
             "safe-server", "mydb", "SELECT 1",
+            null,
             TestContext.Current.CancellationToken);
 
         // Assert — BuildConnectionString must enforce SslMode.Require so connections

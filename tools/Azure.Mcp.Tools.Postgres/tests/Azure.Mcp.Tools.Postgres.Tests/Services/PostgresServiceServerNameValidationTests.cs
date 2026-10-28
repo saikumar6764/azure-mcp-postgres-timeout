@@ -64,6 +64,7 @@ public class PostgresServiceServerNameValidationTests
             _postgresService.ExecuteQueryAsync(
                 AuthTypes.MicrosoftEntra, "test-user", null,
                 maliciousServer, "testdb", "SELECT 1",
+                null,
                 TestContext.Current.CancellationToken));
 
         Assert.Contains("not a valid postgres domain", exception.Message);
@@ -131,6 +132,7 @@ public class PostgresServiceServerNameValidationTests
             _postgresService.ExecuteQueryAsync(
                 AuthTypes.MicrosoftEntra, "test-user", null,
                 server, "testdb", "SELECT 1",
+                null,
                 TestContext.Current.CancellationToken));
 
         Assert.Contains(
@@ -149,6 +151,7 @@ public class PostgresServiceServerNameValidationTests
             _postgresService.ExecuteQueryAsync(
                 AuthTypes.MicrosoftEntra, "test-user", null,
                 "postgres.database.azure.com", "testdb", "SELECT 1",
+                null,
                 TestContext.Current.CancellationToken));
 
         Assert.Contains("does not include a server label", exception.Message);
@@ -163,6 +166,7 @@ public class PostgresServiceServerNameValidationTests
         await _postgresService.ExecuteQueryAsync(
             AuthTypes.MicrosoftEntra, "test-user", null,
             validServer, "testdb", "SELECT 1",
+            null,
             TestContext.Current.CancellationToken);
 
         Assert.NotNull(_capturedConnectionString);
@@ -183,6 +187,7 @@ public class PostgresServiceServerNameValidationTests
         await _postgresService.ExecuteQueryAsync(
             AuthTypes.MicrosoftEntra, "test-user", null,
             "myserver", "testdb", "SELECT 1",
+            null,
             TestContext.Current.CancellationToken);
 
         Assert.NotNull(_capturedConnectionString);
@@ -199,6 +204,7 @@ public class PostgresServiceServerNameValidationTests
             _postgresService.ExecuteQueryAsync(
                 AuthTypes.MicrosoftEntra, "test-user", null,
                 server, "testdb", "SELECT 1",
+                null,
                 TestContext.Current.CancellationToken));
 
         Assert.Contains("not a valid postgres domain", exception.Message);
